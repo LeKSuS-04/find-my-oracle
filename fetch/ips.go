@@ -34,8 +34,7 @@ type oracleResponse struct {
 }
 
 func FetchIPMasks(searchRegion string) ([]string, error) {
-	client := http.Client{}
-	r, err := client.Get(PUBLIC_IPS_URL)
+	r, err := http.Get(PUBLIC_IPS_URL)
 	if err != nil {
 		return nil, err
 	}

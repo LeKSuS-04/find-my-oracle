@@ -6,6 +6,11 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type ipMaskRow struct {
+	mask    string
+	checked bool
+}
+
 func getConnection() (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", "cache.sqlite")
 	if err != nil {
@@ -23,7 +28,7 @@ func InitDB(ipMasks []string) (*sql.DB, error) {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS ip_masks (
 			mask STRING NOT NULL PRIMARY KEY,
-			check_result BOOLEAN
+			checked BOOLEAN NOT NULL DEFAULT FALSE
 		);
 	`)
 	if err != nil {
@@ -32,18 +37,29 @@ func InitDB(ipMasks []string) (*sql.DB, error) {
 
 	for _, mask := range ipMasks {
 		db.Exec(`
-			INSERT INTO ip_masks (mask) values ($1)
+			INSERT INTO ip_masks (mask) values ($1);
 		`, mask)
 	}
 
 	return db, nil
 }
 
-func SetIPMask(db *sql.DB, ipMask string, checkResult bool) error {
+func SetIPMaskChecked(db *sql.DB, ipMask string) error {
 	_, err := db.Exec(`
 		UPDATE ip_masks
-		SET check_result = $1
-		WHERE mask = $2	
-	`, checkResult, ipMask)
+		SET checked = TRUE
+		WHERE mask = $1;
+	`, ipMask)
 	return err
+}
+
+func IsIPMaskChecked(db *sql.DB, ipMask string) bool {
+	row := db.QueryRow(`
+		SELECT checked
+		FROM ip_masks
+		WHERE mask = $1;
+	`, ipMask)
+	var checked bool
+	row.Scan(&checked)
+	return checked
 }
